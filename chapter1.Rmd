@@ -2,3 +2,7 @@
 # About the project
 
 *Write a short description about the course and add a link to your github repository here. This is an R markdown (.Rmd) file so you can use R markdown syntax. See the 'Useful links' page in the mooc area (chapter 1) for instructions.*
+
+In this course the students are getting an introduction in the interesting world of data sciences. In this course the tools which are mostly used are RStudio, R markdown and GitHub.
+
+Here is the link to my personal github [repository](https://github.com/juholaht/IODS-project)

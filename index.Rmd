@@ -1,5 +1,6 @@
 ---
 title: "IODS course project"
+author: "Juho Lähteenmaa"
 output:
   html_document:
     theme: cosmo
