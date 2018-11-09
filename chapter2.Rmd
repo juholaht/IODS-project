@@ -1,7 +1,124 @@
-# Insert chapter 2 title here
+# Analysis, IODS week 2
 
-*Describe the work you have done this week and summarize your learning.*
+## Overlook in data
 
-- Describe your work and results clearly. 
-- Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods
-- Assume the reader has no previous knowledge of your data or the more advanced methods you are using  
+
+Lets read the data from given site. Then we take a look for the data structure.
+
+```{r}
+lrn14 <- read.table("http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/learning2014.txt", sep=",", header=TRUE)
+
+
+str(lrn14)
+
+dim(lrn14)
+
+
+```
+ We have seven variables and 166 observations. As variables we have gender and age of the respondent, attitude toward statistics, deep learning, stratetig learning, surfage learning and exam points. Link to meta text is in [here][id].
+ 
+[id]:http://www.helsinki.fi/~kvehkala/JYTmooc/JYTOPKYS3-meta.txt 
+ 
+ Lets have a brief graphical overview to data. 
+ 
+```{r, error=FALSE, warning=FALSE, message=FALSE}
+# access the GGally and ggplot2 libraries
+library(GGally)
+library(ggplot2)
+
+# create a more advanced plot matrix with ggpairs()
+p <- ggpairs(lrn14, mapping = aes(col = gender, alpha = 0.3), lower = list(combo = wrap("facethist", bins = 20)))
+
+# draw the plot
+p
+
+```
+
+From graph above we can see how variables are distributed and how variables are related to each others. Colours used in graph are signaling the gender (Blue means male, red female). We can see that data set has more women than men (110 females, 56 males). Mostly distributions do not differ significantly between the genders, only in attitude distribution profile is significanty different, also in stratetig learning and surfage learning means look to differ.
+
+Here is the summary of the data.
+
+```{r}
+summary(lrn14)
+
+```
+
+
+
+
+## Linear analysis
+
+Lets define exam points as dependent variable. Variables with highest correlation coefficients related to exam points are attitude, stratetig learning and surface learning. They are the independent variables in our model
+
+$$Y_{i} = \beta_{0} + \beta_{1}X_{1i} + \beta_{2}X_{2i} + \beta_{3}X_{3i} + \varepsilon_{i}$$
+where $Y_{i}$ is exam points, $X_{1i}$ is attitude, $X_{2i}$ is stratetig learning and $X_{3i}$ is surface learning.
+
+
+Here are the plotted values of each variable:
+
+```{r}
+
+qplot(attitude, points, data = lrn14, aes(col = gender)) + geom_smooth(method = "lm") + ggtitle("Regressor Attitude")
+
+qplot(stra, points, data = lrn14, aes(col = gender)) + geom_smooth(method = "lm") + ggtitle("Regressor Stratetig Learning")
+
+qplot(surf, points, data = lrn14, aes(col = gender)) + geom_smooth(method = "lm") + ggtitle("Regressor Surface Learning")
+
+```
+
+As the correlation coefficients show, variable exam points has positive relation with attitude and strategic learning and negative relation with surface learning.
+
+Lets analyse our linear model $Y_{i} = \beta_{0} + \beta_{1}X_{1i} + \beta_{2}X_{2i} + \beta_{3}X_{3i} + \varepsilon_{i}$.
+
+At first we must check the model assumptions:
+
+```{r}
+
+model <- lm(points ~ attitude + stra + surf, data = lrn14)
+
+plot(model, which = c(1,2,5))
+
+
+```
+
+Residuals looks to have mean zero, points are mostly normally distributed and there are no points with significally great leverage.
+
+Here is the summary of the model:
+
+```{r}
+summary(model)
+```
+
+Regressor attitude is only statistically significant independent variable in 10 % confidence level in the model. This model has adjusted $R^2$ value 0.19 which means that the model explains approximately 20 % of the exam poins deviation. With F-test we can check how likely both stategic and surface learning's coefficients are equal zero.
+
+```{r, error=FALSE, warning=FALSE, message=FALSE}
+library(lmtest)
+library(sandwich)
+library(car)
+
+linearHypothesis(model, c("surf = 0", "stra = 0"))
+
+```
+
+With p-value 0.18 we can not reject the null hypothesis "surf = 0", "stra = 0", so we can make model without those two variables.
+
+```{r}
+model2 <- lm(points ~ attitude, data = lrn14)
+```
+
+Checking the assumptions:
+
+```{r}
+plot(model2, which = c(1,2,5))
+```
+
+Taking of the variables strategic learning and surface learning do not make big difference to original model.
+
+Summary of the model $$Y_{i} = \beta_{0} + \beta_{1}X_{1i} + \varepsilon_{i}$$
+
+```{r}
+summary(model2)
+```
+
+In this model adjusted $R^2$ is only slightly smaller than in original model. Also estimated OLS-coefficient for attitude, 0.57, has not changed significantly. This parameter is statistically significant in under 0.1% confidence level. Estimated value for attitude means that when attitude points increase by 1, then exam points expected increase is 3.5.
+
