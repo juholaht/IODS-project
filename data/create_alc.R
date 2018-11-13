@@ -108,3 +108,10 @@ alc <- mutate(alc, alc_use = (Dalc + Walc) / 2)
 alc <- mutate(alc, high_use = alc_use > 2)
 
 glimpse(alc)
+
+
+# Write data in csv
+
+setwd("C:/Users/juhol/OneDrive/Documents/GitHub/IODS-project/data")
+
+write.csv(alc, file = "alc.csv")
