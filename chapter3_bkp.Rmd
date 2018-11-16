@@ -1,6 +1,6 @@
 ---
 title: "Week 3 Analysis - Logistic Regression"
-author: "Juho LÃ¤hteenmaa"
+author: "Juho Lähteenmaa"
 date: "13 November 2018"
 ---
 
