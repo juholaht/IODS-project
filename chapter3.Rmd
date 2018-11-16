@@ -36,10 +36,7 @@ library(dplyr)
 library(tidyverse)
 library(ggplot2)
 library(GGally)
-
-library(car)
-library(sandwich)
-library(lmtest)
+library(cowplot)
 ```
 
 
@@ -65,27 +62,110 @@ str(alc_sub)
 Lets plot alcohol use which each of these variables.
 
 ```{r}
-alc_sex <- ggplot(data = alc_sub, aes(x = sex, fill = high_use)) + geom_bar() + ggtitle("Student consumption of alcohol and sex")
+alc_sex <- ggplot(data = alc_sub, aes(x = sex, fill = high_use)) + geom_bar() + ggtitle("Consumption of alcohol and sex")
 
 alc_sex
 
 
-alc_age <- ggplot(data = alc_sub, aes(x = age, fill = high_use)) + geom_bar() + ggtitle("Student consumption of alcohol and age")
+alc_age <- ggplot(data = alc_sub, aes(x = age, fill = high_use)) + geom_bar() + ggtitle("Consumption of alcohol and age")
 
 alc_age
 
-alc_act <- ggplot(data = alc_sub, aes(x = activities, fill = high_use)) + geom_bar() + ggtitle("Student consumption of alcohol and activities")
+alc_act <- ggplot(data = alc_sub, aes(x = activities, fill = high_use)) + geom_bar() + ggtitle("Consumption of alcohol and activities")
 
 alc_act
 
-alc_rom <- ggplot(data = alc_sub, aes(x = romantic, fill = high_use)) + geom_bar() + ggtitle("Student consumption of alcohol and romantic relationship")
+alc_rom <- ggplot(data = alc_sub, aes(x = romantic, fill = high_use)) + geom_bar() + ggtitle("Consumption of alcohol and romantic relationship")
 
 alc_rom
 
 
+alc_family <- ggplot(data = alc_sub, aes(x = famrel, fill = high_use)) + geom_bar() + ggtitle("Consumption of alcohol and quality of family relationship")
+
+alc_family
+
+
+alc_goout <- ggplot(data = alc_sub, aes(x = goout, fill = high_use)) + geom_bar() + ggtitle("Consumption of alcohol and going out with friends")
+
+alc_goout
 
 
 
 
 ```
 
+It looks clear that high consuming of alcohol is more common for males than for females.
+Interesting fact in this sample is that all age groups from 15 to 18 (where we have better sample) are relatively having same part of high users. It also looks clear that in the group of students having extra-curricular activities, the heavy using is not as common as in other group. Only by looking the histogram, it looks that better quality of family relationships decreases the risk of high consumption of alcohol. Not suprisingly the group of students who are spending more time in out with friends is also consuming more alcohol.
+
+Lets looking this in more detail. Lets start from GLM-model
+$$\text{HighUse}_{i} = \beta_{0} + \beta_{1}\text{Sex}_{i} + \beta_{2}\text{Age}_{i} + \beta_{3}\text{Activities}_{i} + \beta_{4}\text{Romantic}_{i} + \beta_{5}\text{Family}_{i} + \beta_{6}\text{GoOut}_{i} + \epsilon_{i}$$
+and then using the backward method for finding the best candidate for the best linear model.
+```{r}
+# First model
+glm1 <- glm(high_use ~ sex + age + activities + romantic + famrel + goout, data = alc_sub, family = "binomial")
+
+step(glm1, direction = "backward")
+```
+
+By Akaike information criterion the best model is the following:
+$$\text{HighUse}_{i} = \beta_{0} + \beta_{1}\text{Sex}_{i} + \beta_{2}\text{Activities}_{i} + \beta_{3}\text{Family}_{i} + \beta_{4}\text{GoOut}_{i} + \epsilon_{i}$$
+
+This model has $\text{AIC} = 400.6$.
+
+```{r}
+glm_best <- glm(formula = high_use ~ sex + activities + famrel + goout, family = "binomial", 
+    data = alc_sub)
+
+summary(glm_best)
+```
+We can calculate $\text{McFadden's Pseudo} R^2$ representing the overall effect size of the model (more about from [here][id4]):
+
+[id4]: http://www.glmj.org/archives/articles/Smith_v39n2.pdf
+
+```{r}
+ll.null <- glm_best$null.deviance/-2
+ll.proposed <- glm_best$deviance/-2
+
+pseudo_r_sqr <- (ll.null-ll.proposed)/ll.null
+
+pseudo_r_sqr
+
+
+
+ll.null2 <- glm1$null.deviance/-2
+ll.proposed2 <- glm1$deviance/-2
+
+pseudo_r_sqr_org <- (ll.null2-ll.proposed2)/ll.null2
+
+pseudo_r_sqr_org
+
+
+
+```
+
+We get that $\text{McFadden's Pseudo} R^2 = 0.16$ which is relatively small. The original model has $\text{McFadden's Pseudo} R^2 = 0.17$ so having extra variables does not increase the effect size significantly. 
+
+
+In this model all other variables (including the intercept) but "extra-curricular activities" (binary) are statistically significant (counted by Wald-test) in 99 % confidence level. Also variable "extra-curricular activities" is significant in 90 % confidence level. All the coefficients are in "log(odds)" -format. With binary variables, coefficient is represinting the "log(odds ratio)" -format, for example variable sex has $log(\text{odd ratio}) = 0.9971 \Leftrightarrow \text{odd ratio} = 2.71041$. The social variables which were the variables of our interest, having extra-curricular activities has an negative effect to high consumption of alcohol as the good family relationships also does, both with log(odd) -estimation around -0.40 - -0.50. Going out with friends has a positive effect to heavy drinking, $log(\text{odd}) = 0.8118 \Leftrightarrow \text{odd} = 2.251958$, meaning that approximately the ratio between heavy drinkers of those who go out and those how don't is $\frac{5}{2}$.
+
+Lets have a visual look up, how our model "fitted" with data.
+```{r}
+## Predicted values of our model
+predicted_data <- data.frame(
+  probability_of_hc=glm_best$fitted.values,
+  high_consumption=alc_sub$high_use)
+ 
+predicted_data <- predicted_data[
+  order(predicted_data$probability_of_hc, decreasing=FALSE),]
+predicted_data$rank <- 1:nrow(predicted_data)
+ 
+# Plotting
+ggplot(data=predicted_data, aes(x=rank, y=probability_of_hc)) +
+  geom_point(aes(color=high_consumption), alpha=1, shape=4, stroke=2) +
+  xlab("Index") +
+  ylab("Predicted probability of high consumption of alcohol")
+ 
+
+
+```
+We see that our model with social parameters controlled by sex made pretty good predictions, even if there are some miss matches. Of course we have to be critical for the model we are using. We have to take into account that the model doesn't tell us about the causalitys. Probably the causality between high consumption of alcohol and going out with friends has a causality in both ways.
