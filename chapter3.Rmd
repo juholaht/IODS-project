@@ -37,6 +37,8 @@ library(tidyverse)
 library(ggplot2)
 library(GGally)
 library(cowplot)
+library(boot)
+
 ```
 
 
@@ -148,16 +150,24 @@ We get that $\text{McFadden's Pseudo} R^2 = 0.16$ which is relatively small. The
 
 In this model all other variables (including the intercept) but "extra-curricular activities" (binary) are statistically significant (counted by Wald-test) in 99 % confidence level. Also variable "extra-curricular activities" is significant in 90 % confidence level. All the coefficients are in "log(odds)" -format. With binary variables, coefficient is represinting the "log(odds ratio)" -format, for example variable sex has $log(\text{odd ratio}) = 0.9971 \Leftrightarrow \text{odd ratio} = 2.71041$. The social variables which were the variables of our interest, having extra-curricular activities has an negative effect to high consumption of alcohol as the good family relationships also does, both with log(odd) -estimation around -0.40 - -0.50. Going out with friends has a positive effect to heavy drinking, $log(\text{odd}) = 0.8118 \Leftrightarrow \text{odd} = 2.251958$, meaning that approximately the ratio between heavy drinkers of those who go out and those how don't is $\frac{5}{2}$.
 
-Lets have a visual look up, how our model "fitted" with data.
+We can provide 2x2 cross tabulation of predictions versus the actual values. Lets also have a visual look up, how our model "fitted" with data.
 ```{r}
 ## Predicted values of our model
 predicted_data <- data.frame(
-  probability_of_hc=glm_best$fitted.values,
-  high_consumption=alc_sub$high_use)
+  probability_of_hc = glm_best$fitted.values,
+  high_consumption = alc_sub$high_use)
  
-predicted_data <- predicted_data[
-  order(predicted_data$probability_of_hc, decreasing=FALSE),]
+predicted_data <- mutate(predicted_data, prediction = probability_of_hc > 0.5)
+
+predicted_data <- predicted_data[  order(predicted_data$probability_of_hc, decreasing=FALSE),]
+
 predicted_data$rank <- 1:nrow(predicted_data)
+
+# head(predicted_data)
+
+# tabulate the target variable versus the predictions
+table(high_use = predicted_data$high_consumption, prediction = predicted_data$prediction)
+
  
 # Plotting
 ggplot(data=predicted_data, aes(x=rank, y=probability_of_hc)) +
@@ -167,5 +177,42 @@ ggplot(data=predicted_data, aes(x=rank, y=probability_of_hc)) +
  
 
 
+
 ```
-We see that our model with social parameters controlled by sex made pretty good predictions, even if there are some miss matches. Of course we have to be critical for the model we are using. We have to take into account that the model doesn't tell us about the causalitys. Probably the causality between high consumption of alcohol and going out with friends has a causality in both ways.
+
+
+We see that our model with social parameters controlled by sex made average quality predictions, data is mainly distributed in right way. It can be assumed from the small overall effect size of the model (only 0.17 as shown above) that it would not perfectly generate the right predictions. Also what we have to take into account is that the model doesn't tell us about the causalitys. For example the causality between high consumption of alcohol and going out with friends has probably a causality in both ways.
+
+Lets do this also with cross-validation for the model.
+
+```{r}
+# define a loss function (average prediction error)
+loss_func <- function(class, prob) {
+  n_wrong <- abs(class - prob) > 0.5
+  mean(n_wrong)
+}
+
+# Average number of wrong predictions in the (training) data
+
+loss_func(predicted_data$high_consumption, predicted_data$probability_of_hc)
+
+# 10-fold cross-validation
+
+cv <- cv.glm(data = alc_sub, cost = loss_func, glmfit = glm_best, K = 10)
+
+# Average number of wrong predictions in the cross validation
+cv$delta[1]
+
+# For comparing, lets try probabilities P(High_use) = 1 and 0 
+
+# P(High_use) = 1
+loss_func(predicted_data$high_consumption, prob = 1)
+
+# P(High_use) = 0
+loss_func(predicted_data$high_consumption, prob = 0)
+
+
+
+```
+
+Average number of wrong predictions in the training data is 0.23 and 10-fold cross-validation gives 0.24. Our model gives better predictions than just assuming the probability of high consumption to be zero (loss function gives 0.3) or one (loss function gives 0.7). 
