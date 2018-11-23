@@ -220,9 +220,6 @@ Based on graph above we decide to use two clusters.
 km <-kmeans(boston_std, centers = 2)
 
 
-# Results
-km
-
 
 # plot the Boston dataset with clusters
 #pairs(Boston, col = km$cluster)
@@ -233,3 +230,57 @@ ggpairs(boston_std, mapping = aes(col = as.factor(km$cluster), alpha = 0.3), low
 ```
 
 From the plot above we see that k-means clustering works quite well, in most cases those two clusters are enough to seperate the data to two resonable distributions. For example, in the case of *nitrogen oxides concentration (nox)* we see quite clearly two different distributions.
+
+
+## Super Bonus
+
+```{r}
+
+model_predictors <- dplyr::select(train, -crime)
+
+# check the dimensions
+
+dim(model_predictors)
+dim(lda.fit$scaling)
+
+
+# matrix multiplication
+
+matrix_product <- as.matrix(model_predictors) %*% lda.fit$scaling
+matrix_product <- as.data.frame(matrix_product)
+
+
+plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color = train$crime)
+
+
+# Let's find k-clusters for train set
+
+n_k <- nrow(Boston)
+
+ind_k <- sample(n_k, size = n_k*0.8)
+
+
+train_k <- Boston[ind_k,]
+
+train_k <- scale(train_k)
+
+
+twcss2 <- sapply(1:k_max, function(k){kmeans(stats::na.omit(train_k), k)$tot.withinss})
+
+# visualize the results
+qplot(x = 1:k_max, y = twcss2, geom = 'line') # 2
+
+# k-means clustering
+km_k <-kmeans(train_k, centers = 2)
+
+plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color = km_k$cluster)
+
+# Let's increase the number of clusters to 4
+
+km_l <-kmeans(train_k, centers = 4)
+
+plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color = km_l$cluster)
+
+```
+
+In this part we can compare the 3D scatterplots where base vectors are from LDA model made above. All the points in these three 3D scatterplots are in the same cordinates, only the colours differ.The first 3D scatterplot is colored with four crime rates, the second with 2-mean clustering method and the third with 4-mean clustering method. Colours distributions in k-mean clustering plots do not respond the colour distibution of crime rate distribution. It might be that criminal rate does not have as high weight as some other variables in the sense of clustering because it has relatively slight correlation with other variables (this can be seen above).
