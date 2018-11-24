@@ -76,3 +76,10 @@ human <- inner_join(hd, gii, by = "country")
 
 
 View(human)
+
+# Write data in csv
+
+setwd("C:/Users/juhol/OneDrive/Documents/GitHub/IODS-project/data")
+
+write.csv(alc, file = "human.csv")
+
