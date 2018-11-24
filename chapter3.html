@@ -9,7 +9,7 @@
 <meta name="generator" content="pandoc" />
 
 
-<meta name="author" content="Juho Lähteenmaa" />
+<meta name="author" content="Juho LÃ¤hteenmaa" />
 
 <meta name="date" content="2018-11-13" />
 
@@ -123,14 +123,16 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Week 3 Analysis - Logistic Regression</h1>
-<h4 class="author"><em>Juho Lähteenmaa</em></h4>
+<h4 class="author"><em>Juho LÃ¤hteenmaa</em></h4>
 <h4 class="date"><em>13 November 2018</em></h4>
 
 </div>
 
 
-<div id="import-data" class="section level1">
-<h1>Import data</h1>
+<div id="analysis-iods-week-3" class="section level1">
+<h1>Analysis, IODS week 3</h1>
+<div id="import-data" class="section level2">
+<h2>Import data</h2>
 <p>Read data from own data folder.</p>
 <pre class="r"><code>alc &lt;- read.csv(&quot;C:/Users/juhol/OneDrive/Documents/GitHub/IODS-project/data/alc.csv&quot;, header = T, sep = &quot;,&quot;)
 
@@ -234,8 +236,8 @@ dim(alc)</code></pre>
 ## </code></pre>
 <p>Data icludes 382 observations and 35 variables. Data is combined from two datasets which are loaded from <a href="https://archive.ics.uci.edu/ml/machine-learning-databases/00320/">here</a>. Site includes also the meta text for data which is usefull to read. R-code for data wrangling can be found in <a href="https://github.com/juholaht/IODS-project/blob/master/data/create_alc.R">here</a> and data is available in <a href="https://github.com/juholaht/IODS-project/blob/master/data/alc.csv">here</a>.</p>
 </div>
-<div id="analysis" class="section level1">
-<h1>Analysis</h1>
+<div id="analysis" class="section level2">
+<h2>Analysis</h2>
 <p>Packages used in this section:</p>
 <pre class="r"><code>library(dplyr)
 library(tidyverse)
@@ -435,7 +437,7 @@ cv &lt;- cv.glm(data = alc_sub, cost = loss_func, glmfit = glm_best, K = 10)
 
 # Average number of wrong predictions in the cross validation
 cv$delta[1]</code></pre>
-<pre><code>## [1] 0.2408377</code></pre>
+<pre><code>## [1] 0.2486911</code></pre>
 <pre class="r"><code># For comparing, lets try probabilities P(High_use) = 1 and 0 
 
 # P(High_use) = 1
@@ -445,6 +447,7 @@ loss_func(predicted_data$high_consumption, prob = 1)</code></pre>
 loss_func(predicted_data$high_consumption, prob = 0)</code></pre>
 <pre><code>## [1] 0.2984293</code></pre>
 <p>Average number of wrong predictions in the training data is 0.23 and 10-fold cross-validation gives 0.24. Our model gives better predictions than just assuming the probability of high consumption to be zero (loss function gives 0.3) or one (loss function gives 0.7).</p>
+</div>
 </div>
 
 

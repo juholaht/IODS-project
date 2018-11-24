@@ -4,6 +4,10 @@ author: "Juho Lähteenmaa"
 date: "20 November 2018"
 
 ---
+
+# Analysis, IODS week 4
+
+
 Here are the packages used in this session:
 
 ```{r, error=FALSE, warning=FALSE, message=FALSE}
@@ -230,6 +234,50 @@ ggpairs(boston_std, mapping = aes(col = as.factor(km$cluster), alpha = 0.3), low
 ```
 
 From the plot above we see that k-means clustering works quite well, in most cases those two clusters are enough to seperate the data to two resonable distributions. For example, in the case of *nitrogen oxides concentration (nox)* we see quite clearly two different distributions.
+
+## Bonus
+
+For a bonus analyse we will search for a reasonable k-mean clustering for original, standardized Manhattan data. Then we will use these clusters as target variables in new LDA-model and find the variables which have most weight in clustering.
+
+```{r}
+boston_scaled_j <- scale(Boston)
+
+boston_scaled_j <- as.data.frame(boston_scaled_j)
+
+# calculate the total within sum of squares
+twcss_j <- sapply(1:k_max, function(k){kmeans(boston_scaled_j, k)$tot.withinss})
+
+# visualize the results
+qplot(x = 1:k_max, y = twcss_j, geom = 'line')
+
+## Lets use 7 clusters
+
+km_j <-kmeans(boston_scaled_j, centers = 7)
+
+lda.fit_j <- lda(km_j$cluster ~ ., data = boston_scaled_j)
+
+lda.fit_j
+
+
+# the function for lda biplot arrows
+lda.arrows_j <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0.75, choices = c(1,2)){
+  heads <- coef(x)
+  arrows(x0 = 0, y0 = 0, 
+         x1 = myscale * heads[,choices[1]], 
+         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
+  text(myscale * heads[,choices], labels = row.names(heads), 
+       cex = tex, col=color, pos=3)
+}
+
+# target classes as numeric
+classes_j <- as.numeric(km_j$cluster)
+
+# plot the lda results
+plot(lda.fit_j, dimen = 2, col = classes_j, pch = classes_j)
+lda.arrows(lda.fit_j, myscale = 1)
+```
+
+Data is well clustered in seven part. Once again variable *rad*, *index of accessibility to radial highways* has a major influence in LD1 dimension. In LD2 based dimension variable *tax, full-value property-tax rate per \$10,000* has the greatest weight. 
 
 
 ## Super Bonus

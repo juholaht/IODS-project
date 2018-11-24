@@ -4,7 +4,9 @@ author: "Juho Lähteenmaa"
 date: "13 November 2018"
 ---
 
-# Import data
+# Analysis, IODS week 3
+
+## Import data
 
 Read data from own data folder.
 
@@ -27,7 +29,7 @@ Data icludes 382 observations and 35 variables. Data is combined from two datase
 [id3]:https://github.com/juholaht/IODS-project/blob/master/data/alc.csv
 
 
-# Analysis
+## Analysis
 
 Packages used in this section:
 
