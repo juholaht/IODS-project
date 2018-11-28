@@ -13,8 +13,10 @@
 # Packages
 
 library(dplyr)
-
+library(stringr)
 ##############################################
+
+# Week 4
 
 # Import data
 
@@ -77,9 +79,45 @@ human <- inner_join(hd, gii, by = "country")
 
 View(human)
 
+
+
+############################################################
+
+# Week 5
+
+str(human)
+
+human$gni <- str_replace(human$gni, pattern=",", replace ="") %>% as.numeric()
+
+colnames(human)
+
+# RM unneeded columns
+human <- select(human, - rank_hdi,  - hdi, - mean_years_education,  - gni_min_hdi, -rank_gii,  - gii, -sec_edu_female,  - sec_edu_male, -labour_rate_female, - labour_rate_male)
+
+
+# filter out all rows with NA values
+human <- filter(human, complete.cases(human) == T)
+
+colnames(human)
+
+human$country
+
+# define the last indice we want to keep
+last <- nrow(human) - 7
+
+# choose everything until the last 7 observations
+human <- human[1:last, ]
+
+# add countries as rownames
+rownames(human) <- human$country
+
+# rm column country
+
+human <- select(human, - country)
+
 # Write data in csv
 
 setwd("C:/Users/juhol/OneDrive/Documents/GitHub/IODS-project/data")
 
-write.csv(alc, file = "human.csv")
+write.csv(human, file = "human.csv", row.names = T)
 
