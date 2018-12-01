@@ -1,0 +1,217 @@
+---
+title: "Week 5 Analysis - Dimensionality reduction techniques"
+author: "Juho Lähteenmaa"
+date: "29 November 2018"
+output: html_document
+---
+# Analysis, IODS week 5
+
+Here are the packages used in this session:
+
+```{r, error=FALSE, warning=FALSE, message=FALSE}
+
+# REMOVE ALL OBJECTS
+rm(list=ls())
+
+library(GGally)
+library(ggplot2)
+library(dplyr)
+library(corrplot)
+library(tidyr)
+library(FactoMineR)
+
+```
+
+# Human data
+
+## Import data
+
+Let's import data and have a small lookup in it.
+
+```{r}
+human <- read.csv("C:/Users/juhol/OneDrive/Documents/GitHub/IODS-project/data/human.csv", sep  =",", header = T, row.names = 1)
+
+
+# look at the (column) names of human
+names(human)
+
+# look at the structure of human
+str(human)
+
+# print out summaries of the variables
+summary(human)
+
+
+```
+
+
+In our first part of analysis we are taking a brief look in OECD data from [HUMAN DEVELOPMENT REPORT 2015][id1]. In this section we are using subset from original data including variables *Life expectancy at birth*, *Expected years of schooling*, *GNI per capita*, *Maternal mortality ratio*, *Adolescent birth rate*, *Female's share of parliamentary seats*, *Female and male ratio of at least secondary education* and *Female and male ratio labour force participation rates*. In dataset we have 155 observations which are representing countries.
+
+All variables are including only numerical values. From summary we can see that all variables are variating relatively highly. Let's have visual perspective in data.
+
+[id1]: http://hdr.undp.org/sites/default/files/hdr2015_technical_notes.pdf
+
+
+```{r}
+
+# visualize the 'human' variables
+
+
+my_fn <- function(data, mapping, ...){
+  p <- ggplot(data = data, mapping = mapping) + 
+    geom_point() + 
+    geom_smooth(method=loess, fill="red", color="red", ...) +
+    geom_smooth(method=lm, fill="blue", color="blue", ...)
+  p
+}
+
+
+
+ggpairs(human, lower = list(continuous = my_fn))
+
+# compute the correlation matrix and visualize it with corrplot
+cor(human) %>% corrplot
+
+
+
+```
+
+Distributions of variables *Life expectancy at birth*, *GNI per capita*, *Adolescent birth rate* and *Female and male ratio labour force participation rates* are highly skewed. Remaining part of variables look approximately normally distributed. From plot above we can see two drawn lines, the OLS estimated line and smooth curve. OLS line is representing possible linear relation between variables and smooth curve is estimated by counting the average line. Also correlations are representing linear relations. Clear linear or log-linear relation can be seen between many variables, for example between *Life expectancy at birth* and *Expected years of schooling* (corr 0.78), *Maternal mortality ratio* and  *Life expectancy at birth* (corr -0.86, of corse maternal mortality effect directly to life expectancy) and between *Adolescent birth rate* and *Life expectancy at birth* (corr -0.73).
+
+## PCA not standardized for human data
+
+Next we are using *principal components analysis* (PCA) for human data. At first, we are analysing not standardized human data and after that we are comparing the results with standardized data.PCA is popular approach to reduce the dimensions in data. The main idea in PCA  technique is to find the principal components, meaning the directions where observations have most variation. The first principal component is the direction where data is variating the most, the second principal component is the direction where data is variating the second most and etc.
+
+```{r, error=FALSE, warning=FALSE, message=FALSE}
+
+pca_human_not_std <- prcomp(human)
+
+sum_pca_human_not_std <- summary(pca_human_not_std)
+
+# rounded percetanges of variance captured by each PC
+pca_pr_not_std <- round(100*sum_pca_human_not_std$importance[2, ], digits = 3)
+
+# print out the percentages of variance
+pca_pr_not_std
+
+# create object pc_lab to be used as axis labels
+pc_lab_not_std <- paste0(names(pca_pr_not_std), " (", pca_pr_not_std, "%)")
+
+# draw a biplot
+biplot(pca_human_not_std, cex = c(0.8, 1), col = c("grey40", "deeppink2"), xlab = pc_lab_not_std[1], ylab = pc_lab_not_std[2])
+
+
+
+
+```
+
+The first principal component is capturing nearly all the variance (99.99%). The *GNI* variable is nearly only component spanning the PC1. This comes from the fact that *GNI* is variating between 581 -123124 where other variables variation is dozens of times smaller. That is why we have to standardize our data before using PCA.
+
+## PCA standardized for human data
+
+```{r, error=FALSE, warning=FALSE, message=FALSE}
+
+human_std <- scale(human)
+
+pca_human <- prcomp(human_std)
+
+sum_pca_human <- summary(pca_human)
+
+# rounded percetanges of variance captured by each PC
+pca_pr <- round(100*sum_pca_human$importance[2, ], digits = 3)
+
+# print out the percentages of variance
+pca_pr
+
+# create object pc_lab to be used as axis labels
+pc_lab <- paste0(names(pca_pr), " (", pca_pr, "%)")
+
+# draw a biplot
+biplot(pca_human, cex = c(0.8, 1), col = c("grey40", "deeppink2"), xlab = pc_lab[1], ylab = pc_lab[2])
+
+
+```
+
+Now principal components are capturing reasonable amount of variation. The PC1 is capturing 53.6 % of variation, PC2 16.2% and cumulatively the first two PCs are capturing 69.8 % of variation. Interpretation of the graph above is that x-axis is representing the dimension spanned by PC1 and y-axis is correspondly representing the dimension spanned by PC2. Variance of our variables can be represented as linear combination of the principal components. For example, *life expectancy's* coefficient in direction PC1 is -0.44 when *maternal_mortality_ratio* has opposite direction in dimension PC1 with coefficient 0.44. In two first principal components spanned space  *life expectancy* and *labour rate ratio* are nearly orthogonal meaning that variance of the first is orthogonal related to to others variance (correlation between these two variables is -0.14). In space spanned with fist eight principal components cordinate for *life expectancy* is  $[-0.44372240, 0.02530473, -0.10991305, 0.05834819, -0.1628935, 0.42242796, -0.43406432, -0.62737008]$.
+
+In our bixplot horizontal dimension (PC1) can bee seen as representation of the wealthy of the country and vertical direction (PC2) as equility variance. In the South-West corner of the bixplot we can find Northern Countries and from the really opposite corner countries such as Yemen and Afghanistan.
+
+For making the analyse it is necessary to scale the data. PCA is based only on the variance of the data and normally we are not interested in the differences of variance relating the scale.
+
+## Tea time
+
+Let's import the *Tea* data from the package Factominer.
+
+```{r}
+
+
+
+tea <- read.table("http://factominer.free.fr/book/tea.csv",header=TRUE,sep=";")
+
+colnames(tea)
+
+str(tea)
+
+summary(tea)
+
+
+```
+
+In *Tea* data most of the variables are in factor format. Data is containing 36 variables and 300 observations. Let's have a visual overlook in data.
+
+```{r, error=FALSE, warning=FALSE, message=FALSE}
+
+# Splitting the plot
+
+colnames(tea)
+
+tea_subset_1 <- dplyr::select(tea, breakfast:pub)
+
+tea_subset_2 <- dplyr::select(tea, variety:frequency) %>% select(-age)
+
+tea_subset_3 <- dplyr::select(tea, exotic:no.effect.health)
+
+# visualize the dataset
+
+gather(tea_subset_1) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+  
+gather(tea_subset_2) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+gather(tea_subset_3) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+```
+
+The last 12 variables are all categorical variables in "yes - now" dimension. They all are represnting reasons to consume tea. In this part of analysis we are interested in these variables.
+
+```{r, error=FALSE, warning=FALSE, message=FALSE}
+
+# Lets select subset of data. Why people are drinking tea?
+
+tea_time <- dplyr::select(tea, exotic, spirituality, good.for.health, diuretic, friendliness, iron.absorption, feminine, refined, slimming, stimulant, relaxant, no.effect.health)
+
+gather(tea_time) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+
+```
+
+For categorical varibles there is technique which is closely corresponding the PCA, *Multiple Correspondence Analysis* (*MCA*). More about *MCA* can be read from [here][id2].
+
+[id2]: https://en.wikipedia.org/wiki/Multiple_correspondence_analysis#As_an_extension_of_correspondences_analysis
+
+```{r}
+
+# multiple correspondence analysis
+mca <- MCA(tea_time, graph = FALSE)
+
+# summary of the model
+summary(mca)
+
+# visualize MCA
+plot(mca, invisible=c("ind"), habillage = "quali")
+
+
+```
+
+As in PCA, dimensions are ordered by the variance. Dim 1 is capturing 14.1 % of the overall variance. Cumulatively first two variables are responding 26.2 % of the variance, meaning that major part of the data's overall variance is captured by other dimensions.
+
+From bixplot above we can see that most of the categorical varibles values are quite near by the origo in our 2D space. This means that two dimensional MCA model does not explain major part of the variaty in our *tea* data. Still, there are some values in our data making clusters, for example group of values *no effect on health*, *not good for health* and *not relaxant* can be ditinguished (interpretation could be "the cluster of pessimists"). Dim 1 could be seen as "effect of the tea" dimension where values in left are not indentifying any effect of the and in the right values are more devoted on positive effect of tea.
